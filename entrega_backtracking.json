@@ -1,12 +1,12 @@
 {
  "grupo": "Grupo 1",
  "config": {
-  "cierre": 3,
+  "rol": 6,
+  "estrategia": 2,
   "formato": 0,
   "estilo": 6,
-  "estrategia": 2,
-  "rol": 6,
+  "cierre": 3,
   "temperatura": 0.0
  },
- "semana": 3
+ "semana": 6
 }

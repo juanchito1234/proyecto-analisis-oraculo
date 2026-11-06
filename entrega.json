@@ -1,11 +1,11 @@
 {
- "grupo": "G07",
+ "grupo": "Grupo 1",
  "config": {
-  "rol": 5,
-  "estrategia": 1,
-  "formato": 4,
-  "estilo": 3,
-  "cierre": 7,
+  "rol": 6,
+  "estrategia": 2,
+  "formato": 0,
+  "estilo": 6,
+  "cierre": 3,
   "temperatura": 0.0
  },
  "semana": 6
