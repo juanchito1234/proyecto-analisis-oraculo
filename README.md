@@ -1,94 +1,114 @@
-# Proyecto Oráculo
+# Proyecto Oráculo · Grupo 1 (ADAG1)
 
-Curso de Análisis y Diseño de Algoritmos. El trabajo es encontrar una buena configuración de prompt consultando un oráculo. Busquen y validen cuantas veces quieran: el caché guarda lo ya generado y las trazas de fallos vienen con cada resultado.
+Análisis y Diseño de Algoritmos · 2026-B
 
-| Notebook | Colab |
+Búsqueda de una **configuración de prompt** (un índice de 0 a 7 para cada una de las ranuras `rol`, `estrategia`, `formato`, `estilo` y `cierre`, más la temperatura) que maximice la fracción de instancias que cumplen **todas** sus restricciones verificables, consultando un oráculo que ejecuta un modelo de lenguaje en GPU. El espacio tiene 8⁵ = 32 768 configuraciones con temperatura 0.0.
+
+## Identificación
+
+| Campo | Dato |
 |---|---|
-| Proyecto | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielMelo404/Proyecto-Oraculo-AyD/blob/main/proyecto_oraculo.ipynb) |
+| Grupo / subproyecto | ADAG1 · Grupo 1 · Proyecto Oráculo |
+| Integrantes | Felipe Gaviria Arango, Jesús David Milián Saza, Juan José Serna Pérez |
+| Semana de entrega | 6 |
+| Repositorio | https://github.com/juanchito1234/proyecto-analisis-oraculo.git |
+| Rama o versión entregada | `main` |
+| Informe técnico | `Informe_Proyecto_Oraculo_ADAG1.docx` |
 
-## Cómo se juega
+## Configuración entregada
 
-1. Abran el notebook del curso en Colab.
-2. Corran las celdas 1–3. En la 1, **reinicien el entorno** cuando lo pida.
-3. Escriban su heurística **solo en la celda 4**.
-4. Exporten `entrega.json` en la celda 5.
-
-```
-r = oraculo.evaluar(config, instancias, semilla)
-r_val = oraculo.validar(config, n)
-
-r.precision        # 0.55
-r.trazas           # [{id, violo, salida}, ...]
-```
-
-Hay **32 768** configuraciones (`espacio()`, temperatura 0.0): un índice de 0 a 7 por ranura entre `rol`, `estrategia`, `formato`, `estilo` y `cierre`, más la temperatura. Cada ranura es un consejo de prompting; algunos combinan mal con las restricciones que mide el verificador, y las trazas dicen cuál falló. El lote de búsqueda del notebook son las 100 instancias de `busqueda`. Medir con cuántas instancias buscar es parte del problema.
-
-**Es un problema de optimización de verdad.** Cada ranura ataca una parte distinta de la respuesta —el prefijo, el largo, la estructura, los caracteres, el sufijo— y los efectos se componen. Una configuración al azar se queda **debajo del 5%**; el techo está cerca del **24%**. Sortear no alcanza: hay **una sola opción limpia entre ocho** en cada ranura, así que acertar cuatro de cinco ranuras al azar pasa 1 vez cada 900. Para pasar de ahí hay que usar la estructura — leer las trazas, ver qué familia rompe cada opción, y buscar con eso (backtracking con poda, ascenso por coordenadas, haz, recocido). Reparar una ranura a la vez sube de a escalones; ninguna opción buena está en el mismo índice en todas las ranuras.
-
-Las particiones vienen **curadas**. `datos_visibles.json` marca como `descartada` a la instancia que pide más texto del que cabe en `max_new_tokens`, a la que ninguna opción puede romper, y a las de una o de cuatro-cinco restricciones. Las primeras son imposibles de acertar; las segundas son puntos que nadie puede perder, y con un tercio del lote así el puntaje casi no dependía de la configuración elegida. Búsqueda y validación quedan con la misma dificultad (2.5 restricciones por instancia), para que validar mida generalización y no un lote más duro.
-
-## Modelos
-
-`cargar_modelo` acepta un alias o un id de Hugging Face:
-
-| Alias | Checkpoint | Notas |
-|---|---|---|
-| `qwen17b` | `Qwen/Qwen3-1.7B` | el de por defecto; el más rápido |
-| `qwen17b4bit` | `unsloth/Qwen3-1.7B-unsloth-bnb-4bit` | el mismo 1.7B en 4-bit |
-| `ministral3b` | `mistralai/Ministral-3-3B-Instruct-2512-BF16` | 3.8B en fp16 (~7.7 GB), T4 |
-| `llama3b` | `unsloth/Llama-3.2-3B-Instruct` | 3.2B en fp16 (~6.4 GB), T4 |
-| `qwen8b` | `unsloth/Qwen3-8B-unsloth-bnb-4bit` | 4-bit, T4 |
-| `mistral7b` | `unsloth/mistral-7b-instruct-v0.3-bnb-4bit` | 4-bit, T4 |
-
-```
-modelo = cargar_modelo("qwen8b")
-```
-
-Los 7-8B son lentos en T4: tengan paciencia con las primeras corridas.
-
-## Búsqueda y validación
-
-`datos_visibles.json` tiene 450 instancias, de las que se usan **100 de búsqueda y 87 de validación** (el resto va marcado `descartada`, ver `dividir`). Son el mismo split que usan [GEPA](https://arxiv.org/abs/2507.19457) y NPO [1] sobre IF-RLVR Train, de donde salen estos datos. No son las filas exactas de los papers —no publican los índices—, sí la fuente, los tamaños y la disyunción.
-
-```
-datos = cargar_datos()
-busqueda, validacion = dividir(datos)
-oraculo = Oraculo(modelo, busqueda, validacion)
-```
-
-Las dos particiones salen del mismo pool y comparten distribución: validar mide si la config aguanta **instancias** nuevas, no restricciones de un tipo nuevo. Ese otro salto se mide al calificar, con familias que no están en este archivo.
-
-Busquen solo sobre `busqueda`. `oraculo.validar` mide la config elegida con una muestra fija de `n` instancias (las 300 tardan) e imprime qué restricciones se cayeron más.
-
-```
-r_val = oraculo.validar(mejor[1], n=30)
-```
-
-### Ojo con el todo-o-nada
-
-Una instancia trae **hasta 5 restricciones** (2.3 en promedio) y se puntúa todo-o-nada: basta que falle una para que valga 0. En las instancias más duras el modelo acierta poco, así que **con pocas instancias muchas configuraciones van a marcar `0.0` y parecer iguales**. Si su búsqueda no logra distinguir nada, suban el número de instancias antes de cambiar de heurística — decidir cuántas medir es parte del problema.
-
-## Archivos
-
-| Archivo | Qué es |
-|---|---|
-| `proyecto_oraculo.ipynb` | El notebook del curso |
-| `oraculo.py` | La caja negra. Se consulta, no se abre |
-| `ayudas.py` | Cargar modelo, datos, dividir, ver un prompt, curva, entrega |
-| `datos_visibles.json` | 450 instancias: 100 de búsqueda, 87 de validación, 263 descartadas |
-
-## Entrega
-
-Un `entrega.json` con grupo, configuración y semana:
+Está en `entrega.json` y proviene de **backtracking con poda**:
 
 ```json
 {
- "grupo": "G07",
- "config": {"rol": 2, "estrategia": 7, "formato": 4, "estilo": 1, "cierre": 6, "temperatura": 0.0},
- "semana": 3
+ "grupo": "Grupo 1",
+ "config": {"rol": 6, "estrategia": 2, "formato": 0, "estilo": 6, "cierre": 3, "temperatura": 0.0},
+ "semana": 6
 }
 ```
 
+Es la **mejor configuración encontrada**, no un óptimo global probado: la búsqueda visitó 36 de 32 768 configuraciones (0,11 %).
+
+## Algoritmos implementados
+
+| Algoritmo | Notebook de búsqueda | Configuración (rol · estrategia · formato · estilo · cierre) | Búsqueda | Validación (n = 87) |
+|---|---|---|---|---|
+| Backtracking con poda por cota superior | `notebooks/OraculoBacktracking.ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
+| Descenso de coordenadas | `notebooks/descenso_coordenadas_proyecto_oraculo(3).ipynb` | 5 · 1 · 4 · 3 · 7 | 12,0 % (n = 100) | 10,3 % |
+| Algoritmo genético | `notebooks/OraculoGenetic.ipynb` | 4 · 3 · 7 · 5 · 0 | 16,0 % (n = 25) | 9,2 % |
+
+Las precisiones de búsqueda no son comparables entre sí (cada algoritmo usó un lote y un punto de partida distintos); la validación sí. Con 87 instancias, diferencias de pocos puntos no son estadísticamente concluyentes. El análisis completo está en el informe.
+
+## Estructura del repositorio
+
+```
+.
+├── README.md
+├── entrega.json                     # configuración oficial (backtracking)
+├── entregas/
+│   ├── entrega_backtracking_poda.json      # mejor configuración para backtracking con poda
+│   ├── entrega_descenso_coordenadas.json   # mejor configuración para descenso de coordenadas
+│   └── entrega_genetico.json               # mejor configuración para genético
+├── oraculo.py                       # caja negra del curso (se consulta, no se abre)
+├── ayudas.py                        # cargar modelo y datos, dividir, ver_prompt, entrega
+├── datos_visibles.json              # 450 instancias: 100 búsqueda, 87 validación, 263 descartadas
+└── notebooks/
+    ├── evaluacion.ipynb             # evaluación unificada sobre los datos de prueba
+    ├── backtracking_poda.ipynb      # búsqueda que justifica entrega.json
+    ├── descenso_coordenadas.ipynb
+    └── genetico.ipynb
+```
+
+## Entorno
+
+- **Lenguaje:** Python 3.10 o superior (probado en Google Colab).
+- **Hardware:** GPU NVIDIA T4 (Colab: *Entorno de ejecución ▸ Cambiar tipo de entorno de ejecución ▸ T4 GPU*). Sin GPU no se puede cargar el modelo.
+- **Modelo:** `Qwen/Qwen3-1.7B` en fp16 (alias `qwen17b`), modo de pensamiento apagado, `max_new_tokens = 384`.
+- **Dependencias:** `torch`, `transformers`, `accelerate`, `nltk`, `spacy` (con `en_core_web_sm`), `emoji`, `langdetect`, `immutabledict`, `pandas`, `scipy`, `matplotlib`, `tqdm`.
+- **Verificadores:** repositorio `allenai/open-instruct` clonado en `/content/open-instruct` (lo exige `oraculo.py`). Para familias de restricciones nuevas, el notebook de evaluación intenta cargar también `allenai/IFBench`.
+
+Los notebooks instalan lo que falta en su primera celda.
+
+## Cómo ejecutar
+
+**Evaluar la configuración entregada (no requiere editar nada):**
+
+1. Clonar el repositorio en Colab con GPU T4 y abrir `notebooks/evaluacion.ipynb`.
+2. Colocar el archivo de prueba en el repositorio (mismo formato que `datos_visibles.json`); el notebook lo detecta solo.
+3. *Entorno de ejecución ▸ Ejecutar todo*.
+
+El notebook valida `entrega.json`, evalúa esa configuración con `semilla = 1` y temperatura 0.0, compara las tres propuestas y guarda `resultados_evaluacion.json`. Si no encuentra datos de prueba, corre en **modo ensayo** con las instancias de validación visibles y lo declara; ese resultado no es la evaluación final.
+
+**Reproducir una búsqueda:** abrir el notebook del algoritmo correspondiente en Colab con GPU y ejecutar las celdas en orden. Cada notebook guarda sus evaluaciones en la caché del oráculo, de modo que repetir una corrida no vuelve a gastar GPU.
+
+**Inspeccionar un prompt sin generar texto:**
+
+```python
+from ayudas import cargar_datos, dividir, ver_prompt
+busqueda, validacion = dividir(cargar_datos())
+config = {"rol": 6, "estrategia": 2, "formato": 0, "estilo": 6, "cierre": 3, "temperatura": 0.0}
+print(ver_prompt(config, busqueda[0]))
+```
+
+## Reproducibilidad
+
+- Temperatura 0.0 (decodificación *greedy*) y `semilla = 1` en todas las evaluaciones: con la misma configuración e instancias el resultado es determinista.
+- Semillas de los algoritmos: `random.seed(0)` en backtracking, descenso y genético.
+- Datos: `datos_visibles.json` ya trae la partición (`busqueda`, `validacion`, `descartada`); `dividir` la lee sin sorteos.
+- Verificación básica de corrección: `entrega.json` es validado por `evaluacion.ipynb` (un entero de 0 a 7 por ranura y temperatura en {0.0, 0.3, 0.7}), y `ver_prompt` permite revisar el texto exacto que recibe el modelo.
+
+## Límites conocidos
+
+- La búsqueda de backtracking quedó truncada por presupuesto (36 configuraciones); no hay garantía de optimalidad global.
+- El genético buscó sobre 25 instancias, por lo que su precisión de búsqueda tiene mucha incertidumbre.
+- La validación comparte familias de restricciones con la búsqueda; el test privado puede incluir familias nuevas.
+- Solo se exploró la temperatura 0.0.
+- `evaluacion.ipynb` se probó con un oráculo simulado; falta una corrida real en GPU.
+- La validación experimental del crecimiento de T(n) está pendiente (sección 7 del informe).
+- El manual técnico se entrega como documento aparte.
+
 ## Referencias
 
-[1] Yuan Chang y Xiaoqi Chen, *Naive Prompt Optimization: Rethinking the Need for Complex Prompt Search*, arXiv:2608.27266, 2026. https://arxiv.org/abs/2608.27266
+- Documento del proyecto semestral ADAG1 2026-2 y guía de primera entrega.
+- README, `oraculo.py` y `ayudas.py` del repositorio del curso (DanielMelo404/Proyecto-Oraculo-AyD).
+- Chang y Chen, *Naive Prompt Optimization: Rethinking the Need for Complex Prompt Search*, 2026 (citado en el README del curso).
