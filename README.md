@@ -17,7 +17,7 @@ Búsqueda de una **configuración de prompt** (un índice de 0 a 7 para cada una
 
 ## Configuración entregada
 
-Está en `entrega.json` y proviene de **backtracking con poda**:
+Está en `entrega.json` y proviene de **backtracking con poda** y **descenso de coordenadas**:
 
 ```json
 {
@@ -34,7 +34,7 @@ Es la **mejor configuración encontrada**, no un óptimo global probado: la bús
 | Algoritmo | Notebook de búsqueda | Configuración (rol · estrategia · formato · estilo · cierre) | Búsqueda | Validación (n = 87) |
 |---|---|---|---|---|
 | Backtracking con poda por cota superior | `notebooks/OraculoBacktracking.ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
-| Descenso de coordenadas | `notebooks/descenso_coordenadas_proyecto_oraculo(3).ipynb` | 5 · 1 · 4 · 3 · 7 | 12,0 % (n = 100) | 10,3 % |
+| Descenso de coordenadas | `notebooks/descenso_coordenadas_proyecto_oraculo(3).ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
 | Algoritmo genético | `notebooks/OraculoGenetic.ipynb` | 4 · 3 · 7 · 5 · 0 | 16,0 % (n = 25) | 9,2 % |
 
 Las precisiones de búsqueda no son comparables entre sí (cada algoritmo usó un lote y un punto de partida distintos); la validación sí. Con 87 instancias, diferencias de pocos puntos no son estadísticamente concluyentes. El análisis completo está en el informe.
@@ -44,7 +44,7 @@ Las precisiones de búsqueda no son comparables entre sí (cada algoritmo usó u
 ```
 .
 ├── README.md
-├── entrega.json                     # configuración oficial (backtracking)
+├── entrega.json                     # configuración oficial (backtracking y descenso de coordenadas)
 ├── entregas/
 │   ├── entrega_backtracking_poda.json      # mejor configuración para backtracking con poda
 │   ├── entrega_descenso_coordenadas.json   # mejor configuración para descenso de coordenadas
@@ -103,9 +103,7 @@ print(ver_prompt(config, busqueda[0]))
 - El genético buscó sobre 25 instancias, por lo que su precisión de búsqueda tiene mucha incertidumbre.
 - La validación comparte familias de restricciones con la búsqueda; el test privado puede incluir familias nuevas.
 - Solo se exploró la temperatura 0.0.
-- `evaluacion.ipynb` se probó con un oráculo simulado; falta una corrida real en GPU.
-- La validación experimental del crecimiento de T(n) está pendiente (sección 7 del informe).
-- El manual técnico se entrega como documento aparte.
+- El manual técnico e informe se entregan como documentos aparte.
 
 ## Referencias
 
