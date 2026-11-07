@@ -33,9 +33,9 @@ Es la **mejor configuración encontrada**, no un óptimo global probado: la bús
 
 | Algoritmo | Notebook de búsqueda | Configuración (rol · estrategia · formato · estilo · cierre) | Búsqueda | Validación (n = 87) |
 |---|---|---|---|---|
-| Backtracking con poda por cota superior | `notebooks/OraculoBacktracking.ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
-| Descenso de coordenadas | `notebooks/descenso_coordenadas_proyecto_oraculo(3).ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
-| Algoritmo genético | `notebooks/OraculoGenetic.ipynb` | 4 · 3 · 7 · 5 · 0 | 16,0 % (n = 25) | 9,2 % |
+| Backtracking con poda por cota superior | `notebooks/backtracking_poda.ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
+| Descenso de coordenadas | `notebooks/descenso_coordenadas.ipynb` | 6 · 2 · 0 · 6 · 3 | 20,0 % (n = 100) | 23,0 % |
+| Algoritmo genético | `notebooks/genetico.ipynb` | 4 · 3 · 7 · 5 · 0 | 16,0 % (n = 25) | 9,2 % |
 
 Las precisiones de búsqueda no son comparables entre sí (cada algoritmo usó un lote y un punto de partida distintos); la validación sí. Con 87 instancias, diferencias de pocos puntos no son estadísticamente concluyentes. El análisis completo está en el informe.
 
